@@ -40,26 +40,26 @@ flowchart TB
     ENVOI["✅ Envoi (Zimbra)"]
 
     MAIL --> PRE
-    M1 -->|historique INJECTÉ dans le prompt<br/>(éphémère — pas en KB)| PRE
-    PRE -->|API OpenWebUI (Bearer)| PERSONAS
+    M1 -->|"historique INJECTÉ dans le prompt (éphémère — pas en KB)"| PRE
+    PRE -->|"API OpenWebUI (Bearer)"| PERSONAS
     PERSONAS --> RETR
     KBP --> RETR
     KBS --> RETR
     RETR --> GEN
-    GEN -->|draft brut| POST
+    GEN -->|"draft brut"| POST
     POST --> M1
-    M1 -.->|fait durable → mise à jour KB<br/>(tracé · « à valider » si chronologie/identité)| KBS
-    POST -->|DRAFT — jamais auto-envoyé| DASH
+    M1 -.->|"fait durable → mise à jour KB (tracé, à valider si chronologie/identité)"| KBS
+    POST -->|"DRAFT (jamais auto-envoyé)"| DASH
     DASH --> FORM
-    FORM -->|feu vert| ENVOI
+    FORM -->|"feu vert"| ENVOI
 
     REPO --> SYNC
-    SYNC -->|upload + association| KBP
+    SYNC -->|"upload + association"| KBP
     SYNC --> KBS
 
-    JUDGE -.->|tests pré-prod| PERSONAS
-    POST -.->|drafts + tags| METRICS
-    METRICS -.->|alertes| DASH
+    JUDGE -.->|"tests pré-prod"| PERSONAS
+    POST -.->|"drafts + tags"| METRICS
+    METRICS -.->|"alertes"| DASH
 
     classDef orch fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
     classDef mem fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
