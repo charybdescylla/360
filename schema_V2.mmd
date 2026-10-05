@@ -1,0 +1,78 @@
+%% CIFOR V2 — Vue d'ensemble + pipeline (mail entrant → draft HIL)
+%% Code couleur : bleu = orchestrateur · violet = mémoire · orange = moteur RAG · jaune = KB · vert = évaluation · gris = HIL · cyan = hors ligne
+flowchart TB
+
+    MAIL["📧 Mail entrant — Zimbra (9 aliases)"]
+
+    subgraph ORCH["ORCHESTRATEUR (Hermes) — COUCHE AGENTIQUE"]
+        direction TB
+        PRE["① PRÉ-TRAITEMENT<br/>intention · choix du persona · détection de crise<br/>metadata filters · sélection de l'historique"]
+        POST["④ POST-TRAITEMENT<br/>signature + routage alias · contrôle canon<br/>tag classe de décision (autonome / à valider / à surveiller)"]
+    end
+
+    subgraph MEM["MÉMOIRE DU DÉROULEMENT (orchestrateur)"]
+        M1["Suivi : interactions · état de la fiction · fils"]
+    end
+
+    subgraph OWUI["MOTEUR RAG — OPENWEBUI (système externe)"]
+        PERSONAS["Assistants persona (un par rôle)<br/>prompt cadre (kit de codes) + historique injecté"]
+        RETR["② RETRIEVAL HYBRIDE<br/>BM25 + vectoriel + re-ranking"]
+        GEN["③ GÉNÉRATION in-character (LLM large)"]
+        KBP[("KB PARTAGÉE<br/>canon réseau")]
+        KBS[("KB SPÉCIFIQUES<br/>persona / campus")]
+    end
+
+    subgraph OFF["ALIMENTATION DES KB (hors ligne)"]
+        REPO["Repo GitHub CIFOR = TRACE<br/>(source de vérité)"]
+        SYNC["Initialisation (boot) + resync<br/>système de commit externe"]
+    end
+
+    subgraph EVAL["ÉVALUATION (côté orchestrateur)"]
+        JUDGE["Pré-prod : LLM-as-Judge<br/>golden data — invariants du canon"]
+        METRICS["Post-prod : métriques + alertes<br/>dérive · taux HIL · fréquence « à valider »"]
+    end
+
+    subgraph HIL["HUMAN-IN-THE-LOOP"]
+        DASH["Dashboard — file de drafts<br/>triple regard : pilote / agents / interprètes"]
+        FORM["Formateurs : modération → validation d'envoi"]
+    end
+
+    ENVOI["✅ Envoi (Zimbra)"]
+
+    MAIL --> PRE
+    M1 -->|historique INJECTÉ dans le prompt<br/>(éphémère — pas en KB)| PRE
+    PRE -->|API OpenWebUI (Bearer)| PERSONAS
+    PERSONAS --> RETR
+    KBP --> RETR
+    KBS --> RETR
+    RETR --> GEN
+    GEN -->|draft brut| POST
+    POST --> M1
+    M1 -.->|fait durable → mise à jour KB<br/>(tracé · « à valider » si chronologie/identité)| KBS
+    POST -->|DRAFT — jamais auto-envoyé| DASH
+    DASH --> FORM
+    FORM -->|feu vert| ENVOI
+
+    REPO --> SYNC
+    SYNC -->|upload + association| KBP
+    SYNC --> KBS
+
+    JUDGE -.->|tests pré-prod| PERSONAS
+    POST -.->|drafts + tags| METRICS
+    METRICS -.->|alertes| DASH
+
+    classDef orch fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef mem fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
+    classDef owui fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+    classDef kb fill:#fef9c3,stroke:#ca8a04,color:#713f12
+    classDef eval fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef hil fill:#f3f4f6,stroke:#6b7280,color:#111827
+    classDef off fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+
+    class PRE,POST orch
+    class M1 mem
+    class PERSONAS,RETR,GEN owui
+    class KBP,KBS kb
+    class JUDGE,METRICS eval
+    class DASH,FORM,MAIL,ENVOI hil
+    class REPO,SYNC off
