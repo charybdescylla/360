@@ -15,12 +15,22 @@ Pas de WebSocket, pas de WebDAV pour les mails. L'IMAP est le seul canal de lect
 
 ## 2. Compte
 
-- **Adresse** : `xavier.nicolas@uca.fr`
-- **Type** : compte formateur UCA (compte standard, pas de compte simulation dédié)
+- **Adresse d'auth (backend IMAP/SMTP)** : `xavier.nicolas@uca.fr`
+- **Type** : compte formateur UCA (compte standard)
 - **Auth** : mot de passe simple (pas d'app password, pas de 2FA). Le mot de passe est dans un fichier local `~/.imap_pass` (chmod 600) ou `~/.config/vdirsyncer/zimbra.pass` pour CalDAV.
 - **Zimbra version** : non documentée précisément, mais le serveur supporte IMAP UID, CalDAV, et les extensions standard. Pas de limitation de quota connue.
 
-> ⚠️ **Pour la simulation CIFOR** : il faudra créer un compte dédié (ex. `cifor.simulation@uca.fr` ou un alias) plutôt que de réutiliser le compte formateur. Le compte formateur est utilisé par le pipeline email-workflow de production — mélanger les flux serait chaotique.
+### Alias CIFOR (mode d'envoi de la simulation)
+
+> ✅ **Décision (2026-10-15)** : la simulation CIFOR **n'utilise PAS de compte dédié**. Elle envoie via les **alias CIFOR** que le propriétaire du compte gère depuis son adresse pro `xavier.nicolas@uca.fr`.
+
+Concrètement pour ton orchestrateur :
+- **Auth IMAP/SMTP** : toujours le compte `xavier.nicolas@uca.fr` + son mot de passe.
+- **En-tête `From:`** : l'alias CIFOR (ex. `prenom.nom@cifor-...`) — le serveur Zimbra UCA autorise l'envoi sous ces aliases depuis le compte pro (c'est la même mécanique que mon pipeline de production qui envoie les archives CIFOR depuis un alias).
+- **Relecture** : les réponses des "étudiants simulés" arrivent dans la boîte du compte pro (ou dans la boîte de l'alias si Zimbra y a une mailbox propre) — à confirmer avec le propriétaire du compte quel est le comportement exact (alias = redirection vers la boîte pro vs mailbox distincte). C'est LE point à clarifier avant de coder le polling.
+- ⚠️ **Séparation des flux** : le compte pro est aussi utilisé par mon pipeline email-workflow de production. Pour ne pas polluer les boîtes, il faudra soit un dossier IMAP dédié (ex. `CiforSimulation`), soit un flag `\CIFOR`, soit un filtrage par alias `From:`. À trancher avec le propriétaire du compte.
+
+> 📌 **Action requise du côté du compte** : le propriétaire (Xavier) doit confirmer (1) la liste exacte des alias CIFOR utilisables, (2) si chaque alias a sa propre mailbox ou si tout redirige vers la boîte pro, (3) le mot d'accès / le mécanisme d'envoi sous alias. Sans ça, ton orchestrateur ne peut pas coder le `From:` et le polling en aval.
 
 ## 3. Pièges vécus
 
