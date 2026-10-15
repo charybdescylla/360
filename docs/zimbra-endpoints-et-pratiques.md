@@ -24,13 +24,27 @@ Pas de WebSocket, pas de WebDAV pour les mails. L'IMAP est le seul canal de lect
 
 > ✅ **Décision (2026-10-15)** : la simulation CIFOR **n'utilise PAS de compte dédié**. Elle envoie via les **alias CIFOR** que le propriétaire du compte gère depuis son adresse pro `xavier.nicolas@uca.fr`.
 
-Concrètement pour ton orchestrateur :
-- **Auth IMAP/SMTP** : toujours le compte `xavier.nicolas@uca.fr` + son mot de passe.
-- **En-tête `From:`** : l'alias CIFOR (ex. `prenom.nom@cifor-...`) — le serveur Zimbra UCA autorise l'envoi sous ces aliases depuis le compte pro (c'est la même mécanique que mon pipeline de production qui envoie les archives CIFOR depuis un alias).
-- **Relecture** : les réponses des "étudiants simulés" arrivent dans la boîte du compte pro (ou dans la boîte de l'alias si Zimbra y a une mailbox propre) — à confirmer avec le propriétaire du compte quel est le comportement exact (alias = redirection vers la boîte pro vs mailbox distincte). C'est LE point à clarifier avant de coder le polling.
-- ⚠️ **Séparation des flux** : le compte pro est aussi utilisé par mon pipeline email-workflow de production. Pour ne pas polluer les boîtes, il faudra soit un dossier IMAP dédié (ex. `CiforSimulation`), soit un flag `\CIFOR`, soit un filtrage par alias `From:`. À trancher avec le propriétaire du compte.
+#### Liste des alias CIFOR (vérifiée IMAP, 2026-10-15)
 
-> 📌 **Action requise du côté du compte** : le propriétaire (Xavier) doit confirmer (1) la liste exacte des alias CIFOR utilisables, (2) si chaque alias a sa propre mailbox ou si tout redirige vers la boîte pro, (3) le mot d'accès / le mécanisme d'envoi sous alias. Sans ça, ton orchestrateur ne peut pas coder le `From:` et le polling en aval.
+Chaque alias a sa **mailbox dédiée** (dossiers `INBOX/Réception de <alias>` et `Sent/Envoyé de <alias>`) — **pas de redirection** vers la boîte pro.
+
+| # | Alias CIFOR | Dossier réception (IMAP) | Dossier envoi (IMAP) |
+|---|---|---|---|
+| 1 | `drh-cifor.inspe@uca.fr` | `INBOX/Réception de drh-cifor.inspe@uca.fr` | `Sent/Envoyé de drh-cifor.inspe@uca.fr` |
+| 2 | `ipsenior-cifor.inspe@uca.fr` | `INBOX/Réception de ipsenior-cifor.inspe@uca.fr` | `Sent/Envoyé de ipsenior-cifor.inspe@uca.fr` |
+| 3 | `pole-formateur-cifor.inspe@uca.fr` | `INBOX/Réception de pole-formateur-cifor.inspe@uca.fr` | `Sent/Envoyé de pole-formateur-cifor.inspe@uca.fr` |
+| 4 | `responsable-campus-cifor.inspe@uca.fr` | `INBOX/Réception de responsable-campus-cifor.inspe@uca.fr` | `Sent/Envoyé de responsable-campus-cifor.inspe@uca.fr` |
+| 5 | `responsable-com-cifor.inspe@uca.fr` | `INBOX/Réception de responsable-com-cifor.inspe@uca.fr` | `Sent/Envoyé de responsable-com-cifor.inspe@uca.fr` |
+
+#### Concrètement pour ton orchestrateur
+
+- **Auth IMAP/SMTP** : toujours le compte `xavier.nicolas@uca.fr` + son mot de passe.
+- **Envoi** : SMTP avec `From:` = l'alias CIFOR choisi (ex. `ipsenior-cifor.inspe@uca.fr`). Le serveur Zimbra UCA autorise l'envoi sous ces aliases depuis le compte pro.
+- **Polling réception** : lire le dossier IMAP `INBOX/Réception de <alias>` de l'alias concerné. Chaque alias a sa mailbox propre → **pas de pollution** du flux de prod (les mails CIFOR ne tombent pas dans l'INBOX du compte pro).
+- **Séparation des flux** : automatiquement assurée par les mailboxes dédiées. Pas besoin de flag `\CIFOR` ni de dossier supplémentaire.
+- **Choix de l'alias** : l'orchestrateur doit mapper persona → alias (ex. Elena Rossi → `ipsenior-cifor`, DRH → `drh-cifor`, etc.). Ce mapping est à définir selon le scénario CIFOR.
+
+> ✅ **Plus d'action requise du côté du compte** : la liste est connue, les mailboxes existent, l'auth passe par le compte pro. L'orchestrateur peut coder directement.
 
 ## 3. Pièges vécus
 
